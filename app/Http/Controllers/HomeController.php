@@ -7,31 +7,41 @@ use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
-    /**
-     * Menampilkan halaman katalog buku dengan fitur pencarian, filter, sorting, dan paginasi.
-     */
     public function index(Request $request)
     {
-        // TODO 3: Lengkapi logika index():
-        // 1. Buat query pencarian berdasarkan judul, penulis, atau penerbit jika ada input 'search'
-        // 2. Tambahkan filter penerbit dan filter ketersediaan stok jika ada input 'penerbit' / 'status'
-        // 3. Tambahkan pengurutan data berdasarkan input 'sort' (judul, tahun, stok, default: latest)
-        // 4. Lakukan paginasi 8 data dengan withQueryString()
-        // 5. Ambil list penerbit unik untuk opsi dropdown filter
-        // 6. Return view 'home' dengan data buku dan list penerbit
+        $search = $request->input('search');
 
-        $buku = Buku::paginate(8);
-        $listPenerbit = collect();
+        $buku = Buku::when($search, function ($query, $search) {
+                return $query->where(function ($q) use ($search) {
+                    $q->where('judul', 'like', "%{$search}%")
+                      ->orWhere('penulis', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->stok === 'tersedia', fn ($q) => $q->where('stok', '>', 0))
+            ->when($request->stok === 'habis', fn ($q) => $q->where('stok', '<=', 0));
 
-        return view('home', compact('buku', 'listPenerbit'));
+        // Sorting
+        switch ($request->sort) {
+            case 'judul':
+                $buku->orderBy('judul');
+                break;
+            case 'tahun':
+                $buku->orderByDesc('tahun_terbit');
+                break;
+            case 'stok':
+                $buku->orderByDesc('stok');
+                break;
+            default:
+                $buku->latest();
+        }
+
+        $buku = $buku->paginate(5)->withQueryString();
+
+        return view('home', compact('buku', 'search'));
     }
 
-    /**
-     * Menampilkan halaman detail informasi sebuah buku untuk publik/mahasiswa.
-     */
     public function show(Buku $buku)
     {
-        // TODO 3: Kembalikan view 'home_show' membawa data $buku
         return view('home_show', compact('buku'));
     }
 }

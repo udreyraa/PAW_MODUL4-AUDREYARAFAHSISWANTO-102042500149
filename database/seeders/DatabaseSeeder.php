@@ -19,12 +19,18 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Akun Admin Perpustakaan
-        User::create([
-            'name' => 'Admin Perpustakaan',
-            'email' => 'admin@perpustakaan.com',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@perpustakaan.com'],
+            [
+                'name' => 'Admin Perpustakaan',
+                'password' => Hash::make('12345678'),
+                'email_verified_at' => now(),
+                'role' => 'admin',
+            ]
+        );
+
+        // Akun admin dan mahasiswa dari AdminSeeder
+        $this->call(AdminSeeder::class);
 
         // 2. Data Awal Buku
         $bukuData = [
@@ -66,7 +72,7 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($bukuData as $buku) {
-            Buku::create($buku);
+            Buku::updateOrCreate(['judul' => $buku['judul']], $buku);
         }
 
         // 3. Data Awal Anggota
@@ -99,7 +105,7 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($anggotaData as $anggota) {
-            Anggota::create($anggota);
+            Anggota::updateOrCreate(['email' => $anggota['email']], $anggota);
         }
     }
 }
